@@ -9,6 +9,7 @@ N_SHOT=5
 CUDA_DEVICE_JOINT=5
 CUDA_DEVICE_BASELINE=6
 LAMBDA_MMD=0.2
+LOSS_TYPE="mmd" # Can be set to "mmd" or "coral"
 
 # Lambda values to test
 LAMBDA_VALUES=(0.0 0.2 0.4 0.6 0.8 1.0)
@@ -21,6 +22,7 @@ echo "Starting Lambda Sweep Experiment"
 echo "N-shot: ${N_SHOT}"
 echo "Lambda values: ${LAMBDA_VALUES[@]}"
 echo "Seeds: ${SEEDS[@]}"
+echo "Loss Type: ${LOSS_TYPE}"
 echo "Joint runs: $((${#LAMBDA_VALUES[@]} * ${#SEEDS[@]}))"
 echo "Baseline runs: ${#SEEDS[@]} (lambda not applicable)"
 echo "Total runs: $((${#LAMBDA_VALUES[@]} * ${#SEEDS[@]} + ${#SEEDS[@]}))"
@@ -42,13 +44,14 @@ echo "=========================================="
 for lambda_res in "${LAMBDA_VALUES[@]}"; do
     for seed in "${SEEDS[@]}"; do
         echo ""
-        echo ">>> Running JOINT training: lambda_residual=${lambda_res}, seed=${seed}"
+        echo ">>> Running JOINT training: lambda_residual=${lambda_res}, seed=${seed}, loss_type=${LOSS_TYPE}"
         python train_joint_nshot_swin3d.py \
             --n_shot ${N_SHOT} \
             --lambda_residual ${lambda_res} \
             --seed ${seed} \
             --cuda_device ${CUDA_DEVICE_JOINT} \
-            --lambda_mmd ${LAMBDA_MMD}
+            --lambda_mmd ${LAMBDA_MMD} \
+            --loss_type ${LOSS_TYPE}
 
         if [ $? -eq 0 ]; then
             echo "✓ Completed JOINT: lambda_residual=${lambda_res}, seed=${seed}"
@@ -70,11 +73,17 @@ echo "=========================================="
 for seed in "${SEEDS[@]}"; do
     echo ""
     echo ">>> Running BASELINE training: seed=${seed}"
+    # Standard Swin3D Baseline:
     python train_baseline_nshot_swin3d.py \
         --n_shot ${N_SHOT} \
         --seed ${seed} \
-        --cuda_device ${CUDA_DEVICE_BASELINE} \
-        --lambda_mmd ${LAMBDA_MMD}
+        --cuda_device ${CUDA_DEVICE_BASELINE}
+        
+    # To run ResNet-34 baseline instead:
+    # python train_baseline_nshot_resnet34.py --n_shot ${N_SHOT} --seed ${seed} --cuda_device ${CUDA_DEVICE_BASELINE}
+    
+    # To run standard DA baseline (feature-only alignment, no input transforms):
+    # python train_da_baseline_nshot_swin3d.py --n_shot ${N_SHOT} --seed ${seed} --cuda_device ${CUDA_DEVICE_BASELINE} --loss_type ${LOSS_TYPE} --lambda_align ${LAMBDA_MMD}
 
     if [ $? -eq 0 ]; then
         echo "✓ Completed BASELINE: seed=${seed}"

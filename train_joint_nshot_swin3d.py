@@ -333,7 +333,7 @@ class GlobalColorTransform(nn.Module):
 
 
 class TransformModule(nn.Module):
-    def __init__(self, lambda_residual=0.5):
+    def __init__(self, lambda_residual=0.5, disable_stn=False, disable_intensity=False, disable_color=False):
         super().__init__()
 
         self.stn = SpatialTransformer()
@@ -341,6 +341,10 @@ class TransformModule(nn.Module):
         self.bc = BrightnessContrastAdjust()
         self.gamma = GammaAdjust()
         self.color = GlobalColorTransform()
+
+        self.disable_stn = disable_stn
+        self.disable_intensity = disable_intensity
+        self.disable_color = disable_color
 
         # Fixed lambda for extent of operation, each operation to be residual (1 - lambda)
         # Store as buffer (not parameter) so it's part of state_dict but not trainable
@@ -352,20 +356,23 @@ class TransformModule(nn.Module):
 
     def forward(self, x):
         # x = lambda * x + (1 - lambda) * transform(x)
-        x_orig = x
-        x = self.lambda_stn.clamp(0, 1) * x + (1 - self.lambda_stn.clamp(0, 1)) * self.stn(x)
+        if not self.disable_stn:
+            x_orig = x
+            x = self.lambda_stn.clamp(0, 1) * x + (1 - self.lambda_stn.clamp(0, 1)) * self.stn(x)
 
-        x_orig = x
-        x = self.lambda_dog.clamp(0, 1) * x + (1 - self.lambda_dog.clamp(0, 1)) * self.dog(x)
+        if not self.disable_intensity:
+            x_orig = x
+            x = self.lambda_dog.clamp(0, 1) * x + (1 - self.lambda_dog.clamp(0, 1)) * self.dog(x)
 
-        x_orig = x
-        x = self.lambda_bc.clamp(0, 1) * x + (1 - self.lambda_bc.clamp(0, 1)) * self.bc(x)
+            x_orig = x
+            x = self.lambda_bc.clamp(0, 1) * x + (1 - self.lambda_bc.clamp(0, 1)) * self.bc(x)
 
-        x_orig = x
-        x = self.lambda_gamma.clamp(0, 1) * x + (1 - self.lambda_gamma.clamp(0, 1)) * self.gamma(x)
+            x_orig = x
+            x = self.lambda_gamma.clamp(0, 1) * x + (1 - self.lambda_gamma.clamp(0, 1)) * self.gamma(x)
 
-        x_orig = x
-        x = self.lambda_color.clamp(0, 1) * x + (1 - self.lambda_color.clamp(0, 1)) * self.color(x)
+        if not self.disable_color:
+            x_orig = x
+            x = self.lambda_color.clamp(0, 1) * x + (1 - self.lambda_color.clamp(0, 1)) * self.color(x)
 
         return x
 
@@ -460,6 +467,23 @@ def mmd_loss(x, y):
     mmd = kxx.mean() + kyy.mean() - 2 * kxy.mean()
     return mmd
 
+def coral_loss(source, target):
+    """Compute CORAL covariance alignment loss."""
+    d = source.size(1)
+    ns = source.size(0)
+    nt = target.size(0)
+
+    # source covariance
+    xm_s = source - source.mean(0, keepdim=True)
+    xc_s = torch.matmul(xm_s.t(), xm_s) / (ns - 1)
+
+    # target covariance
+    xm_t = target - target.mean(0, keepdim=True)
+    xc_t = torch.matmul(xm_t.t(), xm_t) / (nt - 1)
+
+    loss = torch.sum((xc_s - xc_t) ** 2) / (4 * d * d)
+    return loss
+
 # ---------- Visualization ----------
 
 def visualize_batch(original_S, transformed_S, reference_R, out_dir, epoch, step, max_imgs=8):
@@ -502,7 +526,7 @@ def update_loss_plot(loss_history, out_path="loss_curve.png"):
 
 def train_joint_alignment(
     model, transform_S, dataloader_S, dataloader_R, optimizer, scheduler, device,
-    lambda_mmd=0.5, viz_dir="visuals", viz_interval=200, epoch=0
+    lambda_mmd=0.5, loss_type='mmd', viz_dir="visuals", viz_interval=200, epoch=0
 ):
     model.train(); transform_S.train()
     ce_loss = nn.CrossEntropyLoss()
@@ -527,10 +551,15 @@ def train_joint_alignment(
             loss_r = ce_loss(logits_r, r_label)
             loss_cls = loss_s + loss_r
             if feat_s.shape == feat_r.shape:
-                loss_mmd = lambda_mmd * mmd_loss(feat_s, feat_r)
-                loss_total = loss_cls + loss_mmd
+                if loss_type == 'mmd':
+                    loss_align = lambda_mmd * mmd_loss(feat_s, feat_r)
+                elif loss_type == 'coral':
+                    loss_align = lambda_mmd * coral_loss(feat_s, feat_r)
+                else:
+                    loss_align = 0
+                loss_total = loss_cls + loss_align
             else:
-                loss_mmd = 0
+                loss_align = 0
                 loss_total = loss_cls
         else:
             loss_total = ce_loss(logits_r, r_label)
@@ -540,7 +569,7 @@ def train_joint_alignment(
             print(f"[WARNING] NaN/Inf detected at epoch {epoch}, step {step}")
             print(f"  loss_total: {loss_total.item()}")
             if lambda_mmd > 1e-6:
-                print(f"  loss_s: {loss_s.item()}, loss_r: {loss_r.item()}, loss_mmd: {loss_mmd.item() if isinstance(loss_mmd, torch.Tensor) else loss_mmd}")
+                print(f"  loss_s: {loss_s.item()}, loss_r: {loss_r.item()}, loss_align: {loss_align.item() if isinstance(loss_align, torch.Tensor) else loss_align}")
             print(f"  feat_s stats: min={feat_s.min().item():.4f}, max={feat_s.max().item():.4f}, mean={feat_s.mean().item():.4f}")
             print(f"  feat_r stats: min={feat_r.min().item():.4f}, max={feat_r.max().item():.4f}, mean={feat_r.mean().item():.4f}")
             print(f"  s_trans stats: min={s_trans.min().item():.4f}, max={s_trans.max().item():.4f}, mean={s_trans.mean().item():.4f}")
@@ -633,7 +662,12 @@ def main_exp(args):
     print(len(dataloader_R), len(dataloader_S))
 
     model = DualHeadSwin3D(num_classes_S, num_classes_R).to(device)
-    transform_S = TransformModule(lambda_residual=args.lambda_residual).to(device)
+    transform_S = TransformModule(
+        lambda_residual=args.lambda_residual,
+        disable_stn=args.disable_stn,
+        disable_intensity=args.disable_intensity,
+        disable_color=args.disable_color
+    ).to(device)
 
     params = list(model.parameters()) + list(transform_S.parameters())
 
@@ -651,12 +685,12 @@ def main_exp(args):
         "mmd": []
     }
 
-    LOG_PATH = f"experiment_log_lambda{args.lambda_mmd}_joint_{args.n_shot}shot_all_transforms_swin3d.csv"
+    LOG_PATH = f"experiment_log_lambda{args.lambda_mmd}_joint_{args.n_shot}shot_all_transforms_swin3d_{args.loss_type}.csv"
 
     for epoch in range(epochs):
         loss = train_joint_alignment(
             model, transform_S, dataloader_S, dataloader_R, optimizer, scheduler,
-            device, lambda_mmd=args.lambda_mmd, viz_dir="visuals_swin3d_residual_nshot", viz_interval=100, epoch=epoch
+            device, lambda_mmd=args.lambda_mmd, loss_type=args.loss_type, viz_dir="visuals_swin3d_residual_nshot", viz_interval=100, epoch=epoch
         )
         print(f"[Epoch {epoch}] Training loss = {loss}")
 
@@ -667,10 +701,10 @@ def main_exp(args):
             with open(LOG_PATH, "a", newline="") as f:
                 writer = csv.writer(f)
                 if f.tell() == 0:
-                    writer.writerow(["seed", "n_shot", "lambda_residual", "lambda_mmd", "epoch", "acc_S", "acc_R"])
-                writer.writerow([args.seed, args.n_shot, args.lambda_residual, args.lambda_mmd, epoch + 1, acc_S, acc_R])
+                    writer.writerow(["seed", "n_shot", "lambda_residual", "lambda_mmd", "loss_type", "epoch", "acc_S", "acc_R"])
+                writer.writerow([args.seed, args.n_shot, args.lambda_residual, args.lambda_mmd, args.loss_type, epoch + 1, acc_S, acc_R])
 
-    model_name = f"saved_models/swin3d_joint_nshot{args.n_shot}_lambdares{args.lambda_residual}_lambdammd{args.lambda_mmd}_seed{args.seed}_epoch{epoch+1}_all_transforms.pth"
+    model_name = f"saved_models/swin3d_joint_nshot{args.n_shot}_lambdares{args.lambda_residual}_lambdammd{args.lambda_mmd}_seed{args.seed}_epoch{epoch+1}_all_transforms_{args.loss_type}.pth"
     torch.save(model.state_dict(), model_name)
     print(f"Model saved to {model_name}")
 
@@ -681,7 +715,11 @@ if __name__ == "__main__":
     parser.add_argument('--lambda_residual', type=float, default=0.5, help='Lambda value for residual connection')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--cuda_device', type=int, default=2, help='CUDA device ID')
-    parser.add_argument('--lambda_mmd', type=float, default=0.2, help='Lambda value for MMD loss')
+    parser.add_argument('--lambda_mmd', type=float, default=0.2, help='Lambda value for alignment loss')
+    parser.add_argument('--loss_type', type=str, default='mmd', choices=['mmd', 'coral'], help='Type of domain alignment loss')
+    parser.add_argument('--disable_stn', action='store_true', help='Disable Spatial Transformer Network transformation')
+    parser.add_argument('--disable_intensity', action='store_true', help='Disable DoG/Brightness/Contrast/Gamma transformations')
+    parser.add_argument('--disable_color', action='store_true', help='Disable global color transformation')
 
     args = parser.parse_args()
     main_exp(args)
