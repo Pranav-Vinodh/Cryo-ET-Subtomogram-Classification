@@ -29,12 +29,13 @@ def set_seed(seed: int = 42) -> None:
 
 
 class TargetDataset(Dataset):
-    def __init__(self, csv_path, size=(128, 128), transforms_list=None):
+    def __init__(self, csv_path, size=(128, 128), transforms_list=None, dataset_name="noble"):
         self.size = size
         df = pd.read_csv(csv_path)
         self.image_paths = list(df["path"])
         self.labels = list(df["label"])
         self.transforms = transforms_list if transforms_list else []
+        self.dataset_name = dataset_name
 
     def __getitem__(self, index):
         path = self.image_paths[index]
@@ -42,18 +43,36 @@ class TargetDataset(Dataset):
         img = Image.open(path, 'r')
         video = []
         count = 0
-        for i in range(5):
-            for j in range(6):
-                left = 29 * j
-                top = 29 * i
-                right = 29 * j + 28
-                bottom = 29 * i + 28
-                video.append(np.array(img.crop((left, top, right, bottom)).resize(self.size)))
-                count += 1
+        if self.dataset_name == "qiang":
+            # Qiang dataset: 7x7 grid of 40x40 patches with 1px spacing (spacing=41)
+            # Crop 28 slices
+            for i in range(7):
+                for j in range(7):
+                    left = 41 * j
+                    top = 41 * i
+                    right = 41 * j + 40
+                    bottom = 41 * i + 40
+                    video.append(np.array(img.crop((left, top, right, bottom)).resize(self.size)))
+                    count += 1
+                    if count == 28:
+                        break
                 if count == 28:
                     break
-            if count == 28:
-                break
+        else:
+            # Noble dataset: 5x6 grid of 29x29 patches
+            # Crop 28 slices
+            for i in range(5):
+                for j in range(6):
+                    left = 29 * j
+                    top = 29 * i
+                    right = 29 * j + 28
+                    bottom = 29 * i + 28
+                    video.append(np.array(img.crop((left, top, right, bottom)).resize(self.size)))
+                    count += 1
+                    if count == 28:
+                        break
+                if count == 28:
+                    break
         video = np.array(video)
         video = (video - video.min()) / (video.max() - video.min())
         video = np.stack((video,) * 3, axis=0)
@@ -105,7 +124,7 @@ def create_nshot_csv(full_csv_path, n_shot, seed, output_csv_path=None):
     return nshot_df
 
 
-def get_dataloaders(n_shot=3, seed=42, batch_size=None):
+def get_dataloaders(n_shot=3, seed=42, batch_size=None, dataset_name="noble"):
     """
     Get dataloaders for target domain with n-shot sampling.
 
@@ -113,6 +132,7 @@ def get_dataloaders(n_shot=3, seed=42, batch_size=None):
         n_shot: Number of samples per class for training
         seed: Random seed for sampling and dataloader
         batch_size: Batch size (uses global BATCH_SIZE if None)
+        dataset_name: Name of the target dataset ('noble' or 'qiang')
 
     Returns:
         train_loader, val_loader, val_loader (test is same as val)
@@ -123,8 +143,16 @@ def get_dataloaders(n_shot=3, seed=42, batch_size=None):
     g = torch.Generator()
     g.manual_seed(seed)
 
+    # Resolve train/val csv paths based on dataset
+    if dataset_name == "qiang":
+        train_csv_path = os.path.join(SCRIPT_DIR, "data_split_qiang", "train_real_split.csv")
+        val_csv_path = os.path.join(SCRIPT_DIR, "data_split_qiang", "val_real_split.csv")
+    else:
+        train_csv_path = TARGET_TRAIN_CSV
+        val_csv_path = TARGET_VAL_CSV
+
     # Create n-shot training CSV in memory
-    nshot_df = create_nshot_csv(TARGET_TRAIN_CSV, n_shot, seed)
+    nshot_df = create_nshot_csv(train_csv_path, n_shot, seed)
 
     # Save to temporary CSV for dataset loading
     import tempfile
@@ -133,8 +161,8 @@ def get_dataloaders(n_shot=3, seed=42, batch_size=None):
         nshot_df.to_csv(f, index=False)
 
     # Create datasets
-    train_dataset = TargetDataset(temp_csv_path, size=(128, 128), transforms_list=[])
-    val_dataset = TargetDataset(TARGET_VAL_CSV, size=(128, 128), transforms_list=[])
+    train_dataset = TargetDataset(temp_csv_path, size=(128, 128), transforms_list=[], dataset_name=dataset_name)
+    val_dataset = TargetDataset(val_csv_path, size=(128, 128), transforms_list=[], dataset_name=dataset_name)
 
     # Create dataloaders
     train_loader = DataLoader(
@@ -149,6 +177,6 @@ def get_dataloaders(n_shot=3, seed=42, batch_size=None):
     # Clean up temp file
     os.unlink(temp_csv_path)
 
-    print(f"Target domain: {len(train_dataset)} train samples ({n_shot}-shot), {len(val_dataset)} val samples")
+    print(f"Target domain ({dataset_name}): {len(train_dataset)} train samples ({n_shot}-shot), {len(val_dataset)} val samples")
 
     return train_loader, val_loader, val_loader

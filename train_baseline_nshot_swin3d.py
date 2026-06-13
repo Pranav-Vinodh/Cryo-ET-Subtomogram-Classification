@@ -550,9 +550,6 @@ def evaluate(model, dataloader_R_val, device):
 import dataset_target_nshot
 from torch.optim import SGD, lr_scheduler, AdamW
 
-# Override batch size for Swin3D (higher memory usage than ResNet3D)
-import config_Noble
-config_Noble.BATCH_SIZE = 4
 dataset_target_nshot.BATCH_SIZE = 4
 
 def print_module_parameters(module, indent=0):
@@ -571,9 +568,18 @@ def main_exp(args):
     torch.cuda.set_device(args.cuda_device)
     device = torch.device("cuda")
 
-    dataloader_R, _, val_R = dataset_target_nshot.get_dataloaders(n_shot=args.n_shot, seed=args.seed)
+    # Import target config dynamically and override batch size
+    if args.dataset == "qiang":
+        import config_Qiang as target_config
+    else:
+        import config_Noble as target_config
+    target_config.BATCH_SIZE = 4
 
-    num_classes_R = 7
+    dataloader_R, _, val_R = dataset_target_nshot.get_dataloaders(
+        n_shot=args.n_shot, seed=args.seed, dataset_name=args.dataset
+    )
+
+    num_classes_R = 6 if args.dataset == "qiang" else 7
 
     print(len(dataloader_R))
 
@@ -595,7 +601,7 @@ def main_exp(args):
         "mmd": []
     }
 
-    LOG_PATH = f"experiment_log_lambda{args.lambda_mmd}_baseline_{args.n_shot}shot_swin3d.csv"
+    LOG_PATH = f"experiment_log_{args.dataset}_lambda{args.lambda_mmd}_baseline_{args.n_shot}shot_swin3d.csv"
 
     for epoch in range(epochs):
         loss = train_real( model, dataloader_R, optimizer, scheduler,
@@ -612,7 +618,7 @@ def main_exp(args):
                     writer.writerow(["seed", "n_shot", "lambda_residual", "lambda_mmd", "epoch", "acc_R"])
                 writer.writerow([args.seed, args.n_shot, args.lambda_residual, args.lambda_mmd, epoch + 1, acc_R])
 
-    model_name = f"saved_models/swin3d_baseline_nshot{args.n_shot}_lambdares{args.lambda_residual}_lambdammd{args.lambda_mmd}_seed{args.seed}_epoch{epoch+1}.pth"
+    model_name = f"saved_models/swin3d_baseline_{args.dataset}_nshot{args.n_shot}_lambdares{args.lambda_residual}_lambdammd{args.lambda_mmd}_seed{args.seed}_epoch{epoch+1}.pth"
     torch.save(model.state_dict(), model_name)
     print(f"Model saved to {model_name}")
 
@@ -624,6 +630,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--cuda_device', type=int, default=7, help='CUDA device ID')
     parser.add_argument('--lambda_mmd', type=float, default=0.2, help='Lambda value for MMD loss')
+    parser.add_argument('--dataset', type=str, default='noble', choices=['noble', 'qiang'], help='Target dataset name')
 
     args = parser.parse_args()
     main_exp(args)

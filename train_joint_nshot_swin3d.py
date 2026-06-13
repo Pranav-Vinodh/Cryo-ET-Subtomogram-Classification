@@ -633,9 +633,7 @@ import dataset_source_full
 from torch.optim import SGD, lr_scheduler, AdamW
 
 # Override batch size for Swin3D (higher memory usage than ResNet3D)
-import config_Noble
 import config_simulated_c10
-config_Noble.BATCH_SIZE = 4
 config_simulated_c10.BATCH_SIZE = 4
 dataset_target_nshot.BATCH_SIZE = 4
 dataset_source_full.BATCH_SIZE = 4
@@ -656,9 +654,21 @@ def main_exp(args):
     torch.cuda.set_device(args.cuda_device)
     device = torch.device("cuda")
 
-    dataloader_R, _, val_R = dataset_target_nshot.get_dataloaders(n_shot=args.n_shot, seed=args.seed)
+    # Import target config dynamically and override batch size
+    if args.dataset == "qiang":
+        import config_Qiang as target_config
+    else:
+        import config_Noble as target_config
+    target_config.BATCH_SIZE = 4
+
+    dataloader_R, _, val_R = dataset_target_nshot.get_dataloaders(
+        n_shot=args.n_shot, seed=args.seed, dataset_name=args.dataset
+    )
     dataloader_S, _, val_S = dataset_source_full.get_dataloaders(seed=args.seed)
-    num_classes_S, num_classes_R = 10, 7
+    
+    num_classes_S = 10
+    num_classes_R = 6 if args.dataset == "qiang" else 7
+    
     print(len(dataloader_R), len(dataloader_S))
 
     model = DualHeadSwin3D(num_classes_S, num_classes_R).to(device)
@@ -685,12 +695,12 @@ def main_exp(args):
         "mmd": []
     }
 
-    LOG_PATH = f"experiment_log_lambda{args.lambda_mmd}_joint_{args.n_shot}shot_all_transforms_swin3d_{args.loss_type}.csv"
+    LOG_PATH = f"experiment_log_{args.dataset}_lambda{args.lambda_mmd}_joint_{args.n_shot}shot_all_transforms_swin3d_{args.loss_type}.csv"
 
     for epoch in range(epochs):
         loss = train_joint_alignment(
             model, transform_S, dataloader_S, dataloader_R, optimizer, scheduler,
-            device, lambda_mmd=args.lambda_mmd, loss_type=args.loss_type, viz_dir="visuals_swin3d_residual_nshot", viz_interval=100, epoch=epoch
+            device, lambda_mmd=args.lambda_mmd, loss_type=args.loss_type, viz_dir=f"visuals_swin3d_residual_nshot_{args.dataset}", viz_interval=100, epoch=epoch
         )
         print(f"[Epoch {epoch}] Training loss = {loss}")
 
@@ -704,7 +714,7 @@ def main_exp(args):
                     writer.writerow(["seed", "n_shot", "lambda_residual", "lambda_mmd", "loss_type", "epoch", "acc_S", "acc_R"])
                 writer.writerow([args.seed, args.n_shot, args.lambda_residual, args.lambda_mmd, args.loss_type, epoch + 1, acc_S, acc_R])
 
-    model_name = f"saved_models/swin3d_joint_nshot{args.n_shot}_lambdares{args.lambda_residual}_lambdammd{args.lambda_mmd}_seed{args.seed}_epoch{epoch+1}_all_transforms_{args.loss_type}.pth"
+    model_name = f"saved_models/swin3d_joint_{args.dataset}_nshot{args.n_shot}_lambdares{args.lambda_residual}_lambdammd{args.lambda_mmd}_seed{args.seed}_epoch{epoch+1}_all_transforms_{args.loss_type}.pth"
     torch.save(model.state_dict(), model_name)
     print(f"Model saved to {model_name}")
 
@@ -720,6 +730,7 @@ if __name__ == "__main__":
     parser.add_argument('--disable_stn', action='store_true', help='Disable Spatial Transformer Network transformation')
     parser.add_argument('--disable_intensity', action='store_true', help='Disable DoG/Brightness/Contrast/Gamma transformations')
     parser.add_argument('--disable_color', action='store_true', help='Disable global color transformation')
+    parser.add_argument('--dataset', type=str, default='noble', choices=['noble', 'qiang'], help='Target dataset name')
 
     args = parser.parse_args()
     main_exp(args)
