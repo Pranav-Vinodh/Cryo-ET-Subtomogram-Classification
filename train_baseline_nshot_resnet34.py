@@ -34,126 +34,32 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
 
 
-# ---------- Custom 3D ResNet-34 Architecture (Kensho Hara) ----------
+import resnet
+SAMPLE_DURATION = 28 #32 for simulated data
 
-def conv3x3x3(in_planes, out_planes, stride=1):
-    return nn.Conv3d(in_planes, out_planes, kernel_size=3,
-                      stride=stride, padding=1, bias=False)
-
-
-def downsample_basic_block(x, planes, stride):
-    out = F.avg_pool3d(x, kernel_size=1, stride=stride)
-    zero_pads = torch.Tensor(out.size(0), planes - out.size(1),
-                             out.size(2), out.size(3),
-                             out.size(4)).zero_()
-    if x.is_cuda:
-        zero_pads = zero_pads.cuda()
-
-    out = torch.cat([out, zero_pads], dim=1)
-    return out
-
-
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3x3(inplanes, planes, stride)
-        self.bn1 = nn.BatchNorm3d(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3x3(planes, planes)
-        self.bn2 = nn.BatchNorm3d(planes)
-        self.downsample = downsample
-        self.stride = stride
+class resnet34_3d(nn.Module):
+    def __init__(self, model, hidden_size, num_classes):
+        super(resnet34_3d, self).__init__()
+        self.model = model
+        self.fc = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
+        out = self.model(x)
+        out = self.fc(out)
         return out
 
+def load_resnet_video_pretrained(model_path):
+    model = resnet.resnet34(num_classes=400, shortcut_type='A',
+                            sample_size=128, sample_duration=SAMPLE_DURATION,
+                            last_fc=False)
 
-class ResNet(nn.Module):
-    def __init__(self, block, layers, sample_size, sample_duration, shortcut_type='B', num_classes=400, last_fc=True):
-        self.last_fc = last_fc
-        self.inplanes = 64
-        super(ResNet, self).__init__()
-        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2),
-                               padding=(3, 3, 3), bias=False)
-        self.bn1 = nn.BatchNorm3d(64)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0], shortcut_type)
-        self.layer2 = self._make_layer(block, 128, layers[1], shortcut_type, stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], shortcut_type, stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], shortcut_type, stride=2)
-        last_duration = math.ceil(sample_duration / 16)
-        last_size = math.ceil(sample_size / 32)
-        self.avgpool = nn.AvgPool3d((last_duration, last_size, last_size), stride=1)
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv3d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-            elif isinstance(m, nn.BatchNorm3d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-
-    def _make_layer(self, block, planes, blocks, shortcut_type, stride=1):
-        downsample = None
-        if stride != 1 or self.inplanes != planes * block.expansion:
-            if shortcut_type == 'A':
-                downsample = partial(downsample_basic_block,
-                                     planes=planes * block.expansion,
-                                     stride=stride)
-            else:
-                downsample = nn.Sequential(
-                    nn.Conv3d(self.inplanes, planes * block.expansion,
-                              kernel_size=1, stride=stride, bias=False),
-                    nn.BatchNorm3d(planes * block.expansion)
-                )
-
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
-        self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
-
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        if self.last_fc:
-            x = self.fc(x)
-        return x
-
-
-def resnet34(**kwargs):
-    model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
+    if model_path != None and model_path != "":
+        weights = torch.load(model_path, map_location='cpu')
+        if "state_dict" in weights:
+            model.load_state_dict(weights["state_dict"])
+        else:
+            model.load_state_dict(weights)
+        print(f"loaded weight from {model_path}")
     return model
 
 
@@ -389,29 +295,23 @@ class TransformModule(nn.Module):
 # ---------- Shared Backbone + Two Heads (3D ResNet-34) ----------
 
 class DualHeadResNet34(nn.Module):
-    def __init__(self, num_classes_S, num_classes_R, pretrained_path='/home/pranav/Downloads/video-classification-3d-cnn-pytorch/resnet-34-kinetics-cpu.pth'):
+    def __init__(self, num_classes_S, num_classes_R, pretrained_path='resnet-34-kinetics-cpu.pth'):
         super().__init__()
-        # Pretrained weight configuration
-        backbone = resnet34(sample_size=128, sample_duration=28, num_classes=400)
-        if pretrained_path and os.path.exists(pretrained_path):
-            state_dict = torch.load(pretrained_path, map_location='cpu')['state_dict']
-            # Remove output layer from state_dict to avoid mismatches
-            state_dict = {k: v for k, v in state_dict.items() if not k.startswith('fc.')}
-            backbone.load_state_dict(state_dict, strict=False)
-            print(f"Loaded resnet34 with Kinetics-400 pretrained weights from {pretrained_path}")
-        else:
-            print("Loaded resnet34 with random initialization")
-            
-        in_feat = backbone.fc.in_features  # 512
+        video_pretrained_model = load_resnet_video_pretrained(pretrained_path)
+        backbone = resnet34_3d(video_pretrained_model, 512, num_classes_R)
+        
+        in_feat = backbone.fc.in_features
         backbone.fc = nn.Identity()
         self.backbone = backbone
-        #self.head_S = nn.Linear(in_feat, num_classes_S)
+        self.head_S = nn.Linear(in_feat, num_classes_S)
         self.head_R = nn.Linear(in_feat, num_classes_R)
 
     def forward(self, x, domain='S', return_features=False):
         feats = self.backbone(x)
         logits = self.head_S(feats) if domain == 'S' else self.head_R(feats)
         return (logits, feats) if return_features else logits
+
+DualHeadResNet3D = DualHeadResNet34
 
 
 # ---------- MMD Loss ----------
@@ -627,7 +527,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--cuda_device', type=int, default=7, help='CUDA device ID')
     parser.add_argument('--lambda_mmd', type=float, default=0.2, help='Lambda value for MMD loss')
-    parser.add_argument('--pretrained_path', type=str, default='/home/pranav/Downloads/video-classification-3d-cnn-pytorch/resnet-34-kinetics-cpu.pth', help='Path to resnet-34 pretrained weights')
+    parser.add_argument('--pretrained_path', type=str, default='resnet-34-kinetics-cpu.pth', help='Path to resnet-34 pretrained weights')
     parser.add_argument('--dataset', type=str, default='noble', choices=['noble', 'qiang'], help='Target dataset name')
 
     args = parser.parse_args()
