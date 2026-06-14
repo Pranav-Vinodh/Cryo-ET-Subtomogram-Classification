@@ -134,12 +134,63 @@ python train_joint_nshot_swin3d.py --dataset qiang --n_shot 3 --disable_color --
 
 ---
 
-## Blending Parameter Analysis ($\lambda_{res}$)
+## Experimental Design and Results Tables
 
-The residual blending parameter $\lambda_{res} \in [0, 1]$ controls the strength of the learned input transformations ($x_{trans} = \lambda_{res} x_{orig} + (1 - \lambda_{res}) T(x_{orig})$):
-* **$\lambda_{res} = 0.0$:** Applies full learnable input transformation.
-* **$\lambda_{res} = 1.0$:** Bypasses input transformation entirely (acts as identity transform, relying solely on feature alignment).
+Our revised experimental design is structured to answer all CVPR reviewer critiques while optimizing GPU compute time. We organize the results into three primary tables:
 
-As discussed in the paper:
-* **Dataset 1 (Noble)** performs best at moderate-to-full input adaptation ($\lambda_{res} = 0.2$ or $0.0$) because the isolated macromolecules are clean and symmetric.
-* **Dataset 2 (Qiang)** performs best at $\lambda_{res} = 1.0$ (bypassing input transformations). Because neuronal tomograms have complex backgrounds (membranes and crowded aggregates) and extreme class imbalance, the learnable parameters of the input transformation module are prone to overfitting when trained on very few target examples. Under these conditions, the identity transform acts as a robust regularizer.
+### 1. Table 2: Main Comparative Results
+This table compares our proposed hierarchical adaptation methods (Swin3D + MMD/CORAL) against target-only baselines and feature-only DA baselines. All values report the **Mean ± Standard Deviation** across 10 random seeds at epoch 30.
+
+* **Determining Joint Training Values**: For the proposed methods, the accuracy is reported at the **optimal** $\lambda_{res}$ value (the lambda with the highest mean accuracy across seeds). Our `summarize_results.py` script automatically groups the CSV data, identifies the best lambda, and prints the matching row.
+* **Optimized 5-Shot Runs**: Since the optimal lambda is determined in the 3-shot sweep ($\lambda_{res} = 0.2$ for Noble, $\lambda_{res} = 1.0$ for Qiang), the 5-shot sweeps are run only at these best values to save ~22 hours of GPU time.
+
+| Method | Noble 3-shot | Noble 5-shot | Qiang 3-shot | Qiang 5-shot |
+| :--- | :---: | :---: | :---: | :---: |
+| **ResNet-34 Baseline (Target-Only)** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **Swin3D Baseline (Target-Only)** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **Swin3D + MMD (DA Feature-Only)** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **Swin3D + CORAL (DA Feature-Only)** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **Swin3D + MMD (Proposed)** | Best lambda (sweep) | Best lambda ($\lambda_{res}=0.2$) | Best lambda (sweep) | Best lambda ($\lambda_{res}=1.0$) |
+| **Swin3D + CORAL (Proposed)** | Best lambda (sweep) | Best lambda ($\lambda_{res}=0.2$) | Best lambda (sweep) | Best lambda ($\lambda_{res}=1.0$) |
+
+---
+
+### 2. Table 3: Blending Parameter Analysis ($\lambda_{res}$)
+This table sweeps the residual blending weight $\lambda_{res} \in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]$ for the CORAL proposed joint training model to evaluate the interaction between domain shift complexity and input adaptation strength.
+
+* **$\lambda_{res} = 0.0$**: Full learnable input transformation.
+* **$\lambda_{res} = 1.0$**: Bypasses input transformations entirely (identity transform, relying only on feature alignment).
+
+| $\lambda_{res}$ | Noble 3-shot | Noble 5-shot | Qiang 3-shot | Qiang 5-shot |
+| :--- | :---: | :---: | :---: | :---: |
+| **0.0** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **0.2** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **0.4** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **0.6** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **0.8** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+| **1.0** | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
+
+---
+
+### 3. Table 4: Component Ablation Study (Noble 3-Shot)
+To isolate which input-level transformation categories contribute to domain shift reduction, we perform a component ablation study on the **Noble 3-Shot (Dataset 1)** setting using MMD loss at the optimal blending weight ($\lambda_{res} = 0.2$). 
+
+This directly addresses the reviewers' request to prove which input corrections (Spatial, Intensity, or Color) are effective.
+
+| Configuration | Enabled Modules | Disabled Modules | Sweep Command |
+| :--- | :--- | :--- | :--- |
+| **Swin3D Target-Only** | None | All | `python train_baseline_nshot_swin3d.py ...` |
+| **Swin3D + MMD (DA Baseline)** | None (bypasses input) | All | `python train_da_baseline_nshot_swin3d.py ...` |
+| **Ablation: STN Only** | Spatial / Affine Warp | Intensity, Color | `./run_lambda_sweep.sh ... --lambdas "0.2" --disable_intensity --disable_color` |
+| **Ablation: Intensity Only** | DoG, Brightness/Contrast, Gamma | Spatial, Color | `./run_lambda_sweep.sh ... --lambdas "0.2" --disable_stn --disable_color` |
+| **Ablation: Color Only** | Global Channel Transform | Spatial, Intensity | `./run_lambda_sweep.sh ... --lambdas "0.2" --disable_stn --disable_intensity` |
+| **Swin3D + MMD (Proposed)** | Spatial, Intensity, Color | None | `./run_lambda_sweep.sh ... --lambdas "0.2"` |
+
+---
+
+## Compiling the Results
+Once your sweeps are complete, run the summary script to automatically parse the CSV logs and output the tables in markdown format:
+```bash
+/shared/scratch/0/home/v_pranav_vinodh/miniconda3/envs/torch/bin/python summarize_results.py
+```
+

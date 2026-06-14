@@ -7,3 +7,6 @@ visuals*/
 Subtomogram_CVPR.pdf
 Bridging the Synthetic-to-Real Gap with Hierarchical Adaptation for Few-Shot Cryo-ET Subtomogram Classification _ OpenReview.pdf
 resnet-34-kinetics-cpu.pth
+summarize_results.py
+run_sequentially.sh
+*.log

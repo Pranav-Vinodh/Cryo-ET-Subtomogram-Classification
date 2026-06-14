@@ -468,8 +468,12 @@ dataset_target_nshot.BATCH_SIZE = 4
 def main_exp(args):
     set_seed(args.seed)
 
-    torch.cuda.set_device(args.cuda_device)
-    device = torch.device("cuda")
+    if torch.cuda.is_available():
+        if args.cuda_device >= torch.cuda.device_count():
+            torch.cuda.set_device(0)
+        else:
+            torch.cuda.set_device(args.cuda_device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Import target config dynamically and override batch size
     if args.dataset == "qiang":
