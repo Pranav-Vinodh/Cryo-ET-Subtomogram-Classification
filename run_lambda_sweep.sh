@@ -21,6 +21,13 @@ LOSS_TYPE=${LOSS_TYPE:-"mmd"} # Can be set to "mmd" or "coral"
 # Optional run toggles (default to false, set to true to execute)
 RUN_RESNET=${RUN_RESNET:-"false"}
 RUN_DA_BASELINE=${RUN_DA_BASELINE:-"false"}
+RUN_SWIN_BASELINE=${RUN_SWIN_BASELINE:-"true"}
+
+# Default lambda values to test
+LAMBDA_VALUES=(0.0 0.2 0.4 0.6 0.8 1.0)
+
+# Default 10 random seeds
+SEEDS=(0 42 100 123 456 789 1024 2048 4096 8192)
 
 EXTRA_ARGS=()
 
@@ -53,8 +60,16 @@ while [[ $# -gt 0 ]]; do
       RUN_DA_BASELINE="true"
       shift
       ;;
+    --skip_swin_baseline)
+      RUN_SWIN_BASELINE="false"
+      shift
+      ;;
     --lambdas)
       IFS=' ' read -r -a LAMBDA_VALUES <<< "$2"
+      shift 2
+      ;;
+    --seeds)
+      IFS=' ' read -r -a SEEDS <<< "$2"
       shift 2
       ;;
     *)
@@ -69,12 +84,6 @@ if [ ! -z "${CUDA_VISIBLE_DEVICES}" ]; then
     CUDA_DEVICE_JOINT=${CUDA_DEVICE_JOINT:-0}
     CUDA_DEVICE_BASELINE=${CUDA_DEVICE_BASELINE:-0}
 fi
-
-# Lambda values to test
-LAMBDA_VALUES=(0.0 0.2 0.4 0.6 0.8 1.0)
-
-# 10 random seeds
-SEEDS=(0 42 100 123 456 789 1024 2048 4096 8192)
 
 echo "=========================================="
 echo "Starting Lambda Sweep Experiment"
@@ -137,21 +146,23 @@ echo "PHASE 2: BASELINE TRAINING (Target Only)"
 echo "=========================================="
 
 for seed in "${SEEDS[@]}"; do
-    echo ""
-    echo ">>> Running SWIN3D BASELINE training: dataset=${DATASET}, seed=${seed}"
-    # Standard Swin3D Baseline:
-    $PYTHON train_baseline_nshot_swin3d.py \
-        --dataset ${DATASET} \
-        --n_shot ${N_SHOT} \
-        --seed ${seed} \
-        --cuda_device ${CUDA_DEVICE_BASELINE}
+    if [ "${RUN_SWIN_BASELINE}" = "true" ]; then
+        echo ""
+        echo ">>> Running SWIN3D BASELINE training: dataset=${DATASET}, seed=${seed}"
+        # Standard Swin3D Baseline:
+        $PYTHON train_baseline_nshot_swin3d.py \
+            --dataset ${DATASET} \
+            --n_shot ${N_SHOT} \
+            --seed ${seed} \
+            --cuda_device ${CUDA_DEVICE_BASELINE}
 
-    if [ $? -eq 0 ]; then
-        echo "✓ Completed SWIN3D BASELINE: seed=${seed}"
-        ((BASELINE_SUCCESS++))
-    else
-        echo "✗ FAILED SWIN3D BASELINE: seed=${seed}"
-        ((BASELINE_FAIL++))
+        if [ $? -eq 0 ]; then
+            echo "✓ Completed SWIN3D BASELINE: seed=${seed}"
+            ((BASELINE_SUCCESS++))
+        else
+            echo "✗ FAILED SWIN3D BASELINE: seed=${seed}"
+            ((BASELINE_FAIL++))
+        fi
     fi
 
     # Run ResNet-34 baseline if toggled

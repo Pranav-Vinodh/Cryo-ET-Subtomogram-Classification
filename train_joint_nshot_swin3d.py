@@ -698,7 +698,15 @@ def main_exp(args):
         "mmd": []
     }
 
-    LOG_PATH = f"experiment_log_{args.dataset}_lambda{args.lambda_mmd}_joint_{args.n_shot}shot_all_transforms_swin3d_{args.loss_type}.csv"
+    suffix = ""
+    if args.disable_stn or args.disable_intensity or args.disable_color:
+        parts = []
+        if not args.disable_stn: parts.append("stn")
+        if not args.disable_intensity: parts.append("intensity")
+        if not args.disable_color: parts.append("color")
+        suffix = "_ablation_" + "_".join(parts)
+
+    LOG_PATH = f"experiment_log_{args.dataset}_lambda{args.lambda_mmd}_joint_{args.n_shot}shot_all_transforms_swin3d_{args.loss_type}{suffix}.csv"
 
     for epoch in range(epochs):
         loss = train_joint_alignment(
@@ -717,7 +725,7 @@ def main_exp(args):
                     writer.writerow(["seed", "n_shot", "lambda_residual", "lambda_mmd", "loss_type", "epoch", "acc_S", "acc_R"])
                 writer.writerow([args.seed, args.n_shot, args.lambda_residual, args.lambda_mmd, args.loss_type, epoch + 1, acc_S, acc_R])
 
-    model_name = f"saved_models/swin3d_joint_{args.dataset}_nshot{args.n_shot}_lambdares{args.lambda_residual}_lambdammd{args.lambda_mmd}_seed{args.seed}_epoch{epoch+1}_all_transforms_{args.loss_type}.pth"
+    model_name = f"saved_models/swin3d_joint_{args.dataset}_nshot{args.n_shot}_lambdares{args.lambda_residual}_lambdammd{args.lambda_mmd}_seed{args.seed}_epoch{epoch+1}_all_transforms_{args.loss_type}{suffix}.pth"
     torch.save(model.state_dict(), model_name)
     print(f"Model saved to {model_name}")
 
