@@ -463,7 +463,7 @@ def evaluate(model, dataloader_R_val, device):
 import dataset_target_nshot
 from torch.optim import lr_scheduler
 
-dataset_target_nshot.BATCH_SIZE = 4
+dataset_target_nshot.BATCH_SIZE = 16
 
 def main_exp(args):
     set_seed(args.seed)
@@ -480,7 +480,7 @@ def main_exp(args):
         import config_Qiang as target_config
     else:
         import config_Noble as target_config
-    target_config.BATCH_SIZE = 4
+    target_config.BATCH_SIZE = 16
 
     dataloader_R, _, val_R = dataset_target_nshot.get_dataloaders(
         n_shot=args.n_shot, seed=args.seed, dataset_name=args.dataset
@@ -489,7 +489,7 @@ def main_exp(args):
 
     model = DualHeadResNet34(0, num_classes_R, pretrained_path=args.pretrained_path).to(device)
     params = model.parameters()
-    optimizer = torch.optim.AdamW(params, lr=1e-4, weight_decay=0.02)
+    optimizer = torch.optim.Adam(params, lr=1e-4)
     
     loss_history = []
     epochs = 30

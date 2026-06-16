@@ -140,13 +140,13 @@ Below is the checklist and current status of all planned experiments:
 
 ### 1. Noble Dataset (Dataset 1)
 - [x] **Noble 3-Shot MMD Sweep:** **Completed** (Optimal $\lambda_{res} = 0.60$)
-- [ ] **Noble 3-Shot MMD Ablations:** Pending (STN-only, Intensity-only, Color-only at $\lambda_{res} = 0.60$)
+- [x] **Noble 3-Shot MMD Ablations:** **Completed** (STN-only, Intensity-only, and Color-only completed at $\lambda_{res} = 0.60$)
 - [ ] **Noble 5-Shot MMD:** Pending (optimized run at $\lambda_{res} = 0.60$)
 - [ ] **Noble 3-Shot CORAL Sweep:** Pending (requires joint + DA baseline)
 - [ ] **Noble 5-Shot CORAL:** Pending (optimized run at optimal CORAL $\lambda_{res}$)
 
 ### 2. Qiang Dataset (Dataset 2)
-- [ ] **Qiang 3-Shot MMD Sweep:** Pending (requires joint + DA baseline + ResNet-34 + Swin3D baselines)
+- [ ] **Qiang 3-Shot MMD Sweep:** **In-Progress** (Resumed after server restart; currently training $\lambda_{res} = 0.20$)
 - [ ] **Qiang 5-Shot MMD:** Pending (optimized run at optimal MMD $\lambda_{res}$)
 - [ ] **Qiang 3-Shot CORAL Sweep:** Pending (requires joint + DA baseline)
 - [ ] **Qiang 5-Shot CORAL:** Pending (optimized run at optimal CORAL $\lambda_{res}$)
@@ -192,14 +192,14 @@ To isolate which input-level transformation categories contribute to domain shif
 
 This directly addresses the reviewers' request to prove which input corrections (Spatial, Intensity, or Color) are effective.
 
-| Configuration | Enabled Modules | Disabled Modules | Sweep Command |
-| :--- | :--- | :--- | :--- |
-| **Swin3D Target-Only** | None | All | `python train_baseline_nshot_swin3d.py ...` |
-| **Swin3D + MMD (DA Baseline)** | None (bypasses input) | All | `python train_da_baseline_nshot_swin3d.py ...` |
-| **Ablation: STN Only** | Spatial / Affine Warp | Intensity, Color | `./run_lambda_sweep.sh ... --lambdas "0.6" --skip_swin_baseline --disable_intensity --disable_color` |
-| **Ablation: Intensity Only** | DoG, Brightness/Contrast, Gamma | Spatial, Color | `./run_lambda_sweep.sh ... --lambdas "0.6" --skip_swin_baseline --disable_stn --disable_color` |
-| **Ablation: Color Only** | Global Channel Transform | Spatial, Intensity | `./run_lambda_sweep.sh ... --lambdas "0.6" --skip_swin_baseline --disable_stn --disable_intensity` |
-| **Swin3D + MMD (Proposed)** | Spatial, Intensity, Color | None | `./run_lambda_sweep.sh ... --lambdas "0.6" --skip_swin_baseline` |
+| Configuration | Enabled Modules | Disabled Modules | Accuracy | Sweep Command |
+| :--- | :--- | :--- | :---: | :--- |
+| **Swin3D Target-Only** | None | All | 53.88% ± 10.54% | `python train_baseline_nshot_swin3d.py ...` |
+| **Swin3D + MMD (DA Baseline)** | None (bypasses input) | All | 58.18% ± 6.21% | `python train_da_baseline_nshot_swin3d.py ...` |
+| **Ablation: STN Only** | Spatial / Affine Warp | Intensity, Color | 57.12% ± 7.55% | `./run_lambda_sweep.sh ... --lambdas "0.6" --skip_swin_baseline --disable_intensity --disable_color` |
+| **Ablation: Intensity Only** | DoG, Brightness/Contrast, Gamma | Spatial, Color | 56.73% ± 6.40% | `./run_lambda_sweep.sh ... --lambdas "0.6" --skip_swin_baseline --disable_stn --disable_color` |
+| **Ablation: Color Only** | Global Channel Transform | Spatial, Intensity | 59.77% ± 3.94% | `./run_lambda_sweep.sh ... --lambdas "0.6" --skip_swin_baseline --disable_stn --disable_intensity` |
+| **Swin3D + MMD (Proposed)** | Spatial, Intensity, Color | None | **59.93% ± 5.43%** | `./run_lambda_sweep.sh ... --lambdas "0.6" --skip_swin_baseline` |
 
 ---
 
