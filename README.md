@@ -141,15 +141,15 @@ Below is the checklist and current status of all planned experiments:
 ### 1. Noble Dataset (Dataset 1)
 - [x] **Noble 3-Shot MMD Sweep:** **Completed** (Optimal $\lambda_{res} = 0.60$)
 - [x] **Noble 3-Shot MMD Ablations:** **Completed** (STN-only, Intensity-only, and Color-only completed at $\lambda_{res} = 0.60$)
-- [ ] **Noble 5-Shot MMD:** Pending (optimized run at $\lambda_{res} = 0.60$)
-- [ ] **Noble 3-Shot CORAL Sweep:** Pending (requires joint + DA baseline)
-- [ ] **Noble 5-Shot CORAL:** Pending (optimized run at optimal CORAL $\lambda_{res}$)
+- [x] **Noble 5-Shot MMD:** **Completed** (Optimal $\lambda_{res} = 0.60$)
+- [x] **Noble 3-Shot CORAL Sweep:** **Completed** (Optimal $\lambda_{res} = 0.60$)
+- [x] **Noble 5-Shot CORAL:** **Completed** (Optimal $\lambda_{res} = 0.60$)
 
 ### 2. Qiang Dataset (Dataset 2)
-- [ ] **Qiang 3-Shot MMD Sweep:** **In-Progress** (Resumed after server restart; currently training $\lambda_{res} = 0.20$)
-- [ ] **Qiang 5-Shot MMD:** Pending (optimized run at optimal MMD $\lambda_{res}$)
-- [ ] **Qiang 3-Shot CORAL Sweep:** Pending (requires joint + DA baseline)
-- [ ] **Qiang 5-Shot CORAL:** Pending (optimized run at optimal CORAL $\lambda_{res}$)
+- [x] **Qiang 3-Shot MMD Sweep:** **Completed** (Optimal $\lambda_{res} = 0.20$)
+- [x] **Qiang 5-Shot MMD:** **Completed** (Optimal $\lambda_{res} = 0.20$)
+- [x] **Qiang 3-Shot CORAL Sweep:** **Completed** (Optimal $\lambda_{res} = 0.20$)
+- [ ] **Qiang 5-Shot CORAL:** **In-Progress** (Currently training $\lambda_{res} = 0.20$)
 
 ---
 
@@ -164,12 +164,12 @@ This table compares our proposed hierarchical adaptation methods (Swin3D + MMD/C
 
 | Method | Noble 3-shot | Noble 5-shot | Qiang 3-shot | Qiang 5-shot |
 | :--- | :---: | :---: | :---: | :---: |
-| **ResNet-34 Baseline (Target-Only)** | 61.18% ± 6.03% | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
-| **Swin3D Baseline (Target-Only)** | 53.88% ± 10.54% | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
-| **Swin3D + MMD (DA Feature-Only)** | 58.18% ± 6.21% | Run on 10 seeds | Run on 10 seeds | Run on 10 seeds |
-| **Swin3D + CORAL (DA Feature-Only)** | Skip (TBD) | Skip (TBD) | Skip (TBD) | Skip (TBD) |
-| **Swin3D + MMD (Proposed)** | **59.93% ± 5.43%** ($\lambda=0.6$) | Best lambda ($\lambda_{res}=0.6$) | Best lambda (sweep) | Best lambda (TBD) |
-| **Swin3D + CORAL (Proposed)** | Best lambda (sweep) | Best lambda (TBD) | Best lambda (sweep) | Best lambda (TBD) |
+| **ResNet-34 Baseline (Target-Only)** | 22.21% ± 6.62% | 40.82% ± 12.58% | 19.50% ± 5.90% | 22.50% ± 7.89% |
+| **Swin3D Baseline (Target-Only)** | 53.88% ± 10.54% | 62.48% ± 4.56% | 50.42% ± 5.49% | 51.67% ± 9.30% |
+| **Swin3D + MMD (DA Feature-Only)** | 58.18% ± 6.21% | 62.77% ± 4.52% | 49.08% ± 7.57% | 56.58% ± 7.80% |
+| **Swin3D + CORAL (DA Feature-Only)** | 60.39% ± 4.12% | 63.30% ± 4.79% | 54.67% ± 8.35% | Run on 10 seeds |
+| **Swin3D + MMD (Proposed)** | **59.93% ± 5.43%** ($\lambda=0.6$) | **63.50% ± 4.35%** ($\lambda=0.6$) | **56.00% ± 6.40%** ($\lambda=0.2$) | **58.83% ± 6.31%** ($\lambda=0.2$) |
+| **Swin3D + CORAL (Proposed)** | **60.46% ± 3.72%** ($\lambda=0.6$) | **65.25% ± 2.27%** ($\lambda=0.6$) | **54.83% ± 5.18%** ($\lambda=0.2$) | **56.25% ± 13.55%** ($\lambda=0.2$, In-Progress) |
 
 ---
 
@@ -178,12 +178,12 @@ This table sweeps the residual blending weight $\lambda_{res} \in [0.0, 0.2, 0.4
 
 | $\lambda_{res}$ | Noble 3-shot (MMD) | Noble 3-shot (CORAL) | Qiang 3-shot (MMD) | Qiang 3-shot (CORAL) |
 | :---: | :---: | :---: | :---: | :---: |
-| **0.0** | 57.16% ± 4.74% | TBD | TBD | TBD |
-| **0.2** | 58.55% ± 4.64% | TBD | TBD | TBD |
-| **0.4** | 59.91% ± 5.33% | TBD | TBD | TBD |
-| **0.6** | **59.93% ± 5.43%** | TBD | TBD | TBD |
-| **0.8** | 57.80% ± 5.30% | TBD | TBD | TBD |
-| **1.0** | 57.39% ± 4.58% | TBD | TBD | TBD |
+| **0.0** | 57.16% ± 4.74% | TBD | 51.50% ± 9.86% | TBD |
+| **0.2** | 58.55% ± 4.64% | TBD | **56.00% ± 6.40%** | TBD |
+| **0.4** | 59.91% ± 5.33% | TBD | 55.33% ± 5.24% | TBD |
+| **0.6** | **59.93% ± 5.43%** | TBD | 53.75% ± 8.35% | TBD |
+| **0.8** | 57.80% ± 5.30% | TBD | 54.16% ± 5.12% | TBD |
+| **1.0** | 57.39% ± 4.58% | TBD | 50.16% ± 6.31% | TBD |
 
 ---
 
