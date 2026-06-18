@@ -176,14 +176,14 @@ This table compares our proposed hierarchical adaptation methods (Swin3D + MMD/C
 ### 2. Table 3: Blending Parameter Analysis ($\lambda_{res}$)
 This table sweeps the residual blending weight $\lambda_{res} \in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]$ for the proposed joint training model to evaluate the interaction between domain shift complexity and input adaptation strength.
 
-| $\lambda_{res}$ | Noble 3-shot (MMD) | Noble 3-shot (CORAL) | Qiang 3-shot (MMD) | Qiang 3-shot (CORAL) |
-| :---: | :---: | :---: | :---: | :---: |
-| **0.0** | 57.16% ± 4.74% | TBD | 51.50% ± 9.86% | TBD |
-| **0.2** | 58.55% ± 4.64% | TBD | **56.00% ± 6.40%** | TBD |
-| **0.4** | 59.91% ± 5.33% | TBD | 55.33% ± 5.24% | TBD |
-| **0.6** | **59.93% ± 5.43%** | TBD | 53.75% ± 8.35% | TBD |
-| **0.8** | 57.80% ± 5.30% | TBD | 54.16% ± 5.12% | TBD |
-| **1.0** | 57.39% ± 4.58% | TBD | 50.16% ± 6.31% | TBD |
+| $\lambda_{res}$ | Noble 3-shot (MMD) | Qiang 3-shot (MMD) |
+| :---: | :---: | :---: |
+| **0.0** | 57.16% ± 4.74% | 51.50% ± 9.86% |
+| **0.2** | 58.55% ± 4.64% | **56.00% ± 6.40%** |
+| **0.4** | 59.91% ± 5.33% | 55.33% ± 5.24% |
+| **0.6** | **59.93% ± 5.43%** | 53.75% ± 8.35% |
+| **0.8** | 57.80% ± 5.30% | 54.16% ± 5.12% |
+| **1.0** | 57.39% ± 4.58% | 50.16% ± 6.31% |
 
 ---
 
