@@ -9,4 +9,3 @@ Bridging the Synthetic-to-Real Gap with Hierarchical Adaptation for Few-Shot Cry
 resnet-34-kinetics-cpu.pth
 run_sequentially.sh
 *.log
-resume_coral_sweeps.sh

@@ -149,7 +149,7 @@ Below is the checklist and current status of all planned experiments:
 - [x] **Qiang 3-Shot MMD Sweep:** **Completed** (Optimal $\lambda_{res} = 0.20$)
 - [x] **Qiang 5-Shot MMD:** **Completed** (Optimal $\lambda_{res} = 0.20$)
 - [x] **Qiang 3-Shot CORAL Sweep:** **Completed** (Optimal $\lambda_{res} = 0.20$)
-- [ ] **Qiang 5-Shot CORAL:** **In-Progress** (Currently training $\lambda_{res} = 0.20$)
+- [x] **Qiang 5-Shot CORAL:** **Completed** (Optimal $\lambda_{res} = 0.20$)
 
 ---
 
@@ -167,9 +167,9 @@ This table compares our proposed hierarchical adaptation methods (Swin3D + MMD/C
 | **ResNet-34 Baseline (Target-Only)** | 22.21% ± 6.62% | 40.82% ± 12.58% | 19.50% ± 5.90% | 22.50% ± 7.89% |
 | **Swin3D Baseline (Target-Only)** | 53.88% ± 10.54% | 62.48% ± 4.56% | 50.42% ± 5.49% | 51.67% ± 9.30% |
 | **Swin3D + MMD (DA Feature-Only)** | 58.18% ± 6.21% | 62.77% ± 4.52% | 49.08% ± 7.57% | 56.58% ± 7.80% |
-| **Swin3D + CORAL (DA Feature-Only)** | 60.39% ± 4.12% | 63.30% ± 4.79% | 54.67% ± 8.35% | Run on 10 seeds |
+| **Swin3D + CORAL (DA Feature-Only)** | 60.39% ± 4.12% | 63.30% ± 4.79% | 54.67% ± 8.35% | **60.58% ± 5.17%** |
 | **Swin3D + MMD (Proposed)** | **59.93% ± 5.43%** ($\lambda=0.6$) | **63.50% ± 4.35%** ($\lambda=0.6$) | **56.00% ± 6.40%** ($\lambda=0.2$) | **58.83% ± 6.31%** ($\lambda=0.2$) |
-| **Swin3D + CORAL (Proposed)** | **60.46% ± 3.72%** ($\lambda=0.6$) | **65.25% ± 2.27%** ($\lambda=0.6$) | **54.83% ± 5.18%** ($\lambda=0.2$) | **56.25% ± 13.55%** ($\lambda=0.2$, In-Progress) |
+| **Swin3D + CORAL (Proposed)** | **60.46% ± 3.72%** ($\lambda=0.6$) | **65.25% ± 2.27%** ($\lambda=0.6$) | **54.83% ± 5.18%** ($\lambda=0.2$) | 60.50% ± 6.05% ($\lambda=0.2$) |
 
 ---
 

@@ -156,10 +156,20 @@ This table isolates which input-level transformation categories contribute to do
 | **Swin3D + CORAL (DA Feature-Only)** | 54.67% ± 8.35% | N/A | Feature alignment only (no input-level transforms) |
 | **Swin3D + CORAL (Proposed)** | **54.83% ± 5.18%** | **0.20** | **Hierarchical adaptation (Input + Feature alignment)** |
 
----
+## 8. Qiang 5-Shot CORAL Sweep Results
+* **Dataset:** Qiang target dataset (6 classes, 5-shot training pool, 120 val samples)
+* **Alignment Loss:** CORAL (Correlation Alignment)
+* **Aggregation Method:** Epoch 30 performance across 10 random seeds at best $\lambda_{res} = 0.20$
 
-## 8. Other Sweeps (To Be Populated)
-* Qiang 5-Shot CORAL (In-Progress)
+### Main Comparative Results
+
+| Method | Accuracy | Best Blending Weight ($\lambda_{res}$) | Notes |
+| :--- | :---: | :---: | :--- |
+| **ResNet-34 Baseline (Target-Only)** | 22.50% ± 7.89% | N/A | Fine-tuned on real target data only |
+| **Swin3D Baseline (Target-Only)** | 51.67% ± 9.30% | N/A | Fine-tuned on real target data only |
+| **Swin3D + CORAL (DA Feature-Only)** | **60.58% ± 5.17%** | N/A | Feature alignment only (no input-level transforms) |
+| **Swin3D + CORAL (Proposed)** | 60.50% ± 6.05% | 0.20 | Hierarchical adaptation (Input + Feature alignment) |
+
 
 
 
