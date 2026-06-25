@@ -9,3 +9,4 @@ Bridging the Synthetic-to-Real Gap with Hierarchical Adaptation for Few-Shot Cry
 resnet-34-kinetics-cpu.pth
 run_sequentially.sh
 *.log
+run_sweeps_self_healing.py

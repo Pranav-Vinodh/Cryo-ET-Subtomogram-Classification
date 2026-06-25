@@ -11,6 +11,8 @@ def parse_logs():
 
     data = []
     for f in csv_files:
+        if os.path.dirname(f) == "":
+            continue
         filename = os.path.basename(f)
         try:
             df = pd.read_csv(f)
