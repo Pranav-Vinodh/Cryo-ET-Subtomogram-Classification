@@ -211,7 +211,6 @@ This table isolates which input-level transformation categories contribute to do
 ---
 
 ### Blending Parameter Sweep Analysis ($\lambda_{res}$)
-*(Note: $\lambda_{res} = 1.0$ is currently in progress.)*
 
 | Blending Weight ($\lambda_{res}$) | Accuracy (Qiang 3-shot CORAL) |
 | :---: | :---: |
@@ -220,14 +219,14 @@ This table isolates which input-level transformation categories contribute to do
 | **0.4 (Best)** | **57.50% ± 4.68%** |
 | **0.6** | 56.42% ± 4.12% |
 | **0.8** | 55.08% ± 6.30% |
-| **1.0** | In Progress |
+| **1.0** | 55.08% ± 5.89% |
 
 ---
 
 ## 8. Qiang 5-Shot CORAL Sweep Results
 * **Dataset:** Qiang target dataset (6 classes, 5-shot training pool, 120 val samples)
 * **Alignment Loss:** CORAL (Correlation Alignment)
-* **Aggregation Method:** Epoch 30 performance across 10 random seeds at best $\lambda_{res} = 0.20$
+* **Aggregation Method:** Epoch 30 performance across 10 random seeds
 
 ### Main Comparative Results
 
@@ -235,19 +234,18 @@ This table isolates which input-level transformation categories contribute to do
 | :--- | :---: | :---: | :--- |
 | **ResNet-34 Baseline (Target-Only)** | 22.50% ± 7.89% | N/A | Fine-tuned on real target data only |
 | **Swin3D Baseline (Target-Only)** | 51.67% ± 9.30% | N/A | Fine-tuned on real target data only |
-| **Swin3D + CORAL (DA Feature-Only)** | **60.58% ± 5.17%** | N/A | Feature alignment only (no input-level transforms) |
-| **Swin3D + CORAL (Proposed)** | 60.50% ± 6.05% | 0.20 | Hierarchical adaptation (Input + Feature alignment) |
+| **Swin3D + CORAL (DA Feature-Only)** | 60.58% ± 5.17% | N/A | Feature alignment only (no input-level transforms) |
+| **Swin3D + CORAL (Proposed)** | **61.50% ± 3.96%** | **0.80** | **Hierarchical adaptation (Input + Feature alignment)** |
 
 ---
 
 ### Blending Parameter Sweep Analysis ($\lambda_{res}$)
-*(Note: The full parameter sweep for Qiang 5-shot CORAL is in progress / TBD.)*
 
 | Blending Weight ($\lambda_{res}$) | Accuracy (Qiang 5-shot CORAL) |
 | :---: | :---: |
-| **0.0** | TBD |
-| **0.2 (Best)** | **60.50% ± 6.05%** |
-| **0.4** | TBD |
-| **0.6** | TBD |
-| **0.8** | TBD |
-| **1.0** | TBD |
+| **0.0** | 60.92% ± 6.88% |
+| **0.2** | 60.50% ± 6.05% |
+| **0.4** | 58.83% ± 6.40% |
+| **0.6** | 60.42% ± 5.61% |
+| **0.8 (Best)** | **61.50% ± 3.96%** |
+| **1.0** | 59.50% ± 4.91% |

@@ -141,15 +141,15 @@ Below is the checklist and current status of all planned experiments:
 ### 1. Noble Dataset (Dataset 1)
 - [x] **Noble 3-Shot MMD Sweep:** **Completed** (Optimal $\lambda_{res} = 0.60$)
 - [x] **Noble 3-Shot MMD Ablations:** **Completed** (STN-only, Intensity-only, and Color-only completed at $\lambda_{res} = 0.60$)
-- [x] **Noble 5-Shot MMD:** **Completed** (Optimal $\lambda_{res} = 0.60$)
-- [x] **Noble 3-Shot CORAL Sweep:** **Completed** (Optimal $\lambda_{res} = 0.60$)
+- [x] **Noble 5-Shot MMD:** **Completed** (Optimal $\lambda_{res} = 0.40$)
+- [x] **Noble 3-Shot CORAL Sweep:** **Completed** (Optimal $\lambda_{res} = 0.20$)
 - [x] **Noble 5-Shot CORAL:** **Completed** (Optimal $\lambda_{res} = 0.60$)
 
 ### 2. Qiang Dataset (Dataset 2)
 - [x] **Qiang 3-Shot MMD Sweep:** **Completed** (Optimal $\lambda_{res} = 0.20$)
-- [x] **Qiang 5-Shot MMD:** **Completed** (Optimal $\lambda_{res} = 0.20$)
-- [x] **Qiang 3-Shot CORAL Sweep:** **Completed** (Optimal $\lambda_{res} = 0.20$)
-- [x] **Qiang 5-Shot CORAL:** **Completed** (Optimal $\lambda_{res} = 0.20$)
+- [x] **Qiang 5-Shot MMD:** **Completed** (Optimal $\lambda_{res} = 0.00$)
+- [x] **Qiang 3-Shot CORAL Sweep:** **Completed** (Optimal $\lambda_{res} = 0.40$)
+- [x] **Qiang 5-Shot CORAL Sweep:** **Completed** (Optimal $\lambda_{res} = 0.80$)
 
 ---
 
@@ -169,7 +169,7 @@ This table compares our proposed hierarchical adaptation methods (Swin3D + MMD/C
 | **Swin3D + MMD (DA Feature-Only)** | 58.18% ± 6.21% | 62.77% ± 4.52% | 49.08% ± 7.57% | 56.58% ± 7.80% |
 | **Swin3D + CORAL (DA Feature-Only)** | 60.39% ± 4.12% | 63.30% ± 4.79% | 54.67% ± 8.35% | **60.58% ± 5.17%** |
 | **Swin3D + MMD (Proposed)** | **59.93% ± 5.43%** ($\lambda=0.6$) | **63.84% ± 3.11%** ($\lambda=0.4$) | **56.00% ± 6.40%** ($\lambda=0.2$) | **60.50% ± 7.53%** ($\lambda=0.0$) |
-| **Swin3D + CORAL (Proposed)** | **61.41% ± 4.33%** ($\lambda=0.2$) | **65.25% ± 2.27%** ($\lambda=0.6$) | **57.50% ± 4.68%** ($\lambda=0.4$) | 60.50% ± 6.05% ($\lambda=0.2$) |
+| **Swin3D + CORAL (Proposed)** | **61.41% ± 4.33%** ($\lambda=0.2$) | **65.25% ± 2.27%** ($\lambda=0.6$) | **57.50% ± 4.68%** ($\lambda=0.4$) | **61.50% ± 3.96%** ($\lambda=0.8$) |
 
 ---
 
@@ -183,7 +183,7 @@ This table sweeps the residual blending weight $\lambda_{res} \in [0.0, 0.2, 0.4
 | **0.4** | 59.91% ± 5.33% | 55.33% ± 5.24% | 60.04% ± 5.28% | **57.50% ± 4.68%** |
 | **0.6** | **59.93% ± 5.43%** | 53.75% ± 8.35% | 60.46% ± 3.72% | 56.42% ± 4.12% |
 | **0.8** | 57.80% ± 5.30% | 54.17% ± 5.12% | 59.38% ± 4.47% | 55.08% ± 6.30% |
-| **1.0** | 57.39% ± 4.58% | 50.17% ± 6.31% | 61.09% ± 5.12% | In Progress |
+| **1.0** | 57.39% ± 4.58% | 50.17% ± 6.31% | 61.09% ± 5.12% | 55.08% ± 5.89% |
 
 ---
 
